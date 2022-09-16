@@ -164,34 +164,19 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
                                    const uint8_t *__restrict__ w, 
                                    uint8_t *__restrict__ b) 
 {
-  //a输入wkernelb输出
-  __shared__ float TiledA[batch_size][size][size][in_channel];
-  __shared__ float TiledB[kernel][kernel][in_channel][out_channel];
-  int tx = threadIdx.x, ty = threadIdx.y;
-  const int i = blockIdx.x * block_size + tx;
-  const int j = blockIdx.y * block_size + ty;
-  int x = i - kernel / 2, y = j - kernel / 2;
+	const int i = blockIdx.x * block_size + threadIdx.x;
+  const int j = blockIdx.y * block_size + threadIdx.y;
   if (i < size && j < size) {
-    // 遍历顺序 
-    for (int s = 0; s < batch_size; ++s ) {
+    for (int s = 0; s < batch_size; ++s) {
       for ( int CI = 0; CI < in_channel; ++CI) {
         uint8_t conv = 0;
         // Conv2d for a single pixel, single output channel.
-        for ( int CO = 0; CO < out_channel; ++CO) {
-          
-          
-
-          for ( int l = 0; l < kernel; ++l ) {
-            for (int k = 0; k < kernel; ++k) {
-
-              TiledA[s][x][y][CI] = a(s, x, y, CI);
-              TiledB[k][l][CO][CI] = w(k, l, CI, CO);
-               __syncwarp();
-
+        for (int CO = 0; CO < out_channel; ++CO) {
+          int x = i - kernel / 2, y = j - kernel / 2;
+          for (int k = 0; k < kernel; ++k) {
+            for (int l = 0; l < kernel; ++l) {
               if (!(x < 0 || x >= size || y < 0 || y >= size)) {
-                // conv += a(s, x, y, CI) * w(k, l, CI, CO);
-                conv += TiledA[s][x][y][CI]
-                        *TiledB[k][l][CO][CI];
+                conv += a(s, x, y, CI) * w(k, l, CI, CO);
               }
               y++;
             }
@@ -205,6 +190,47 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
       }
     }
   }
+//   //a输入wkernelb输出
+//   __shared__ float TiledA[batch_size][size][size][in_channel];
+//   __shared__ float TiledB[kernel][kernel][in_channel][out_channel];
+//   int tx = threadIdx.x, ty = threadIdx.y;
+//   const int i = blockIdx.x * block_size + tx;
+//   const int j = blockIdx.y * block_size + ty;
+//   int x = i - kernel / 2, y = j - kernel / 2;
+//   if (i < size && j < size) {
+//     // 遍历顺序 
+//     for (int s = 0; s < batch_size; ++s ) {
+//       for ( int CI = 0; CI < in_channel; ++CI) {
+//         uint8_t conv = 0;
+//         // Conv2d for a single pixel, single output channel.
+//         for ( int CO = 0; CO < out_channel; ++CO) {
+          
+          
+
+//           for ( int l = 0; l < kernel; ++l ) {
+//             for (int k = 0; k < kernel; ++k) {
+
+//               TiledA[s][x][y][CI] = a(s, x, y, CI);
+//               TiledB[k][l][CO][CI] = w(k, l, CI, CO);
+//                __syncwarp();
+
+//               if (!(x < 0 || x >= size || y < 0 || y >= size)) {
+//                 // conv += a(s, x, y, CI) * w(k, l, CI, CO);
+//                 conv += TiledA[s][x][y][CI]
+//                         *TiledB[k][l][CO][CI];
+//               }
+//               y++;
+//             }
+//             x++;
+//             y -= kernel;
+//           }
+// 	  b(s, i, j, CO) = conv;
+//         }
+//         // Write back to b.
+        
+//       }
+//     }
+//   }
 }
 
 // naive and shit
