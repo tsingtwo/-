@@ -177,7 +177,7 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
       for ( int CO = 0; CO < out_channel; ++CO) {
         uint8_t conv = 0;
         // Conv2d for a single pixel, single output channel.
-        for (int  int l = 0; l < kernel; ++l) {
+        for (int l = 0; l < kernel; ++l) {
           
           
 
