@@ -174,7 +174,7 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
   if (i < size && j < size) {
     // 遍历顺序 
     for (int s = 0; s < batch_size; ++s ) {
-      for ( int k = 0; k < kernel; ++k) {
+      for ( int CO = 0; CO < out_channel; ++CO) {
         uint8_t conv = 0;
         // Conv2d for a single pixel, single output channel.
         for (int  int l = 0; l < kernel; ++l) {
@@ -182,7 +182,7 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
           
 
           for ( int CI = 0; CI < in_channel; ++CI) {
-            for ( CO = 0; CO < out_channel; ++CO) {
+            for (int k = 0; k < kernel; ++k) {
 
               TiledA[s][x][y][CI] = a(s, x, y, CI);
               TiledB[k][l][CO][CI] = w(k, l, CI, CO);
