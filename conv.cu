@@ -183,9 +183,10 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
             x++;
             y -= kernel;
           }
+		b(s, i, j, CO) = conv;
         }
         // Write back to b.
-        b(s, i, j, CO) = conv;
+        
       }
     }
   }
