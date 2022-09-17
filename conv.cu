@@ -166,34 +166,40 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
                                    const uint8_t *__restrict__ w,
                                    uint8_t *__restrict__ b)
 {
-  const int i = blockIdx.x * block_size + threadIdx.x;
-  const int j = blockIdx.y * block_size + threadIdx.y;
-  for (int s = 0; s < batch_size; ++s) {
-    for (int k = 0; k < kernel; ++k) {
-      if (i < size && j < size) {
-          uint8_t xx = 0;
+  for (int i = blockIdx.z * blockDim.z + threadIdx.z; i < size; i += blockDim.z * gridDim.z)
+    for (int j = blockIdx.y * blockDim.y + threadIdx.y; j < size; j += blockDim.y * gridDim.y)
+    {
+      for (int s = blockIdx.x; s < batch_size; s += gridDim.x)
+      {
+        for (int CO = threadIdx.x; CO < out_channel; CO += blockDim.x){
+        int x = i - kernel / 2, y = j - kernel / 2;
+          
           uint8_t conv = 0;
           // Conv2d for a single pixel, single output channel.
-          for (int l = 0; l < kernel; ++l) {
-            int x = i - kernel / 2, y = j - kernel / 2;
-            for (int CI = 0; CI < in_channel; ++CI) {
-              for (int CO = 0; CO < out_channel; ++CO) {
+          for ( int k = 0; k < kernel; ++k) {
+            
+            for ( int l = 0; l < kernel; ++l) {
+
+              for (int CI = 0; CI < in_channel; ++CI) {
                 if (!(x < 0 || x >= size || y < 0 || y >= size)) {
                   conv += a(s, x, y, CI) * w(k, l, CI, CO);
-                  xx = Co;
+                  
                 }
-                y++;
+                
               }
-              x++;
-              y -= kernel;
+              y++;
+              
             }
+            x++;
+            y -= kernel;
           }
         // Write back to b.
-          b(s, i, j, xx) = conv;
+          
+          b(s, i, j, CO) = conv;
       }
     }
-  }
-}
+  
+}}}
 
 // naive and shit
 // only for testing correctness and precision
@@ -212,9 +218,8 @@ void conv_cuda(const uint8_t *const a, const uint8_t *const w, uint8_t *const b,
   cudaEventRecord(*start_e);
   // Run Conv2d Kernel,
   // Timer for computation cuda kernel.
-  dim3 grid((size + block_size - 1) / block_size,
-            (size + block_size - 1) / block_size);
-  dim3 block(block_size, block_size);
+  dim3 grid(128,64,64);
+  dim3 block(128, 4, 2);
   // @note: you can also use CUDA API to launch a cuda kernel function,
   // __host__ cudaError_t cudaLaunchKernel;
   
@@ -237,6 +242,7 @@ void conv_cuda(const uint8_t *const a, const uint8_t *const w, uint8_t *const b,
   cudaFree(w_kernel);
   cudaFree(b_kernel);
 }
+
 
 int main() {
   auto a = new uint8_t[batch_size * size * size * in_channel];
