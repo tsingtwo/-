@@ -166,12 +166,12 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
                                    const uint8_t *__restrict__ w,
                                    uint8_t *__restrict__ b)
 {
-  for (int i = blockIdx.z * blockDim.z + threadIdx.z; i < size; i += blockDim.z * gridDim.z)
-    for (int j = blockIdx.y * blockDim.y + threadIdx.y; j < size; j += blockDim.y * gridDim.y)
+  for ( int s = blockIdx.x; s < batch_size; s += gridDim.x)
+    for ( int CO = threadIdx.x; CO < out_channel; CO += blockDim.x)
     {
-      for (int s = blockIdx.x; s < batch_size; s += gridDim.x)
+      for (int i = blockIdx.z * blockDim.z + threadIdx.z; i < size; i += blockDim.z * gridDim.z)
       {
-        for (int CO = threadIdx.x; CO < out_channel; CO += blockDim.x){
+        for (int j = blockIdx.y * blockDim.y + threadIdx.y; j < size; j += blockDim.y * gridDim.y){
         int x = i - kernel / 2, y = j - kernel / 2;
           
           uint8_t conv = 0;
