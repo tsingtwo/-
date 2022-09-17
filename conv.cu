@@ -218,13 +218,14 @@ void conv_cuda(const uint8_t *const a, const uint8_t *const w, uint8_t *const b,
   // __host__ cudaError_t cudaLaunchKernel;
   
   conv2d_cuda_kernel<<<grid, block>>>(a_kernel, w_kernel, b_kernel);
-  CUDA_CALL(cudaDeviceSynchronize());
+  
 
   cudaError_t kernel_err = cudaGetLastError();
   if (kernel_err != cudaSuccess) {
         printf("CUDA Kernel: %s", cudaGetErrorString(kernel_err));
         abort();
   }
+  CUDA_CALL(cudaDeviceSynchronize());
   // Stop Timer
   cudaEventRecord(*stop_e);
   cudaEventSynchronize(*stop_e);
