@@ -199,7 +199,7 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
       }
     }
   
-}}}
+}}
 
 // naive and shit
 // only for testing correctness and precision
