@@ -164,15 +164,13 @@ const int block_size = 16;
 
 __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
                                    const uint8_t *__restrict__ w,
-                                   uint8_t *__restrict__ b,
-                                   uint8_t CO,
-                                   uint8_t s)
+                                   uint8_t *__restrict__ b)
 {
   const int i = blockIdx.x * block_size + threadIdx.x;
   const int j = blockIdx.y * block_size + threadIdx.y;
   for (int s = 0; s < batch_size; ++s) {
     for (int CO = 0; CO < out_channel; ++CO) {
-    if (i < size && j < size) {
+      if (i < size && j < size) {
 
           uint8_t conv = 0;
           // Conv2d for a single pixel, single output channel.
@@ -191,7 +189,7 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
           }
         // Write back to b.
           b(s, i, j, CO) = conv;
-    }
+      }
     }
   }
 }
@@ -219,7 +217,7 @@ void conv_cuda(const uint8_t *const a, const uint8_t *const w, uint8_t *const b,
   // @note: you can also use CUDA API to launch a cuda kernel function,
   // __host__ cudaError_t cudaLaunchKernel;
   
-  conv2d_cuda_kernel<<<grid, block>>>(a_kernel, w_kernel, b_kernel,CO,s);
+  conv2d_cuda_kernel<<<grid, block>>>(a_kernel, w_kernel, b_kernel);
   CUDA_CALL(cudaDeviceSynchronize());
 
   cudaError_t kernel_err = cudaGetLastError();
