@@ -169,17 +169,18 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
   const int i = blockIdx.x * block_size + threadIdx.x;
   const int j = blockIdx.y * block_size + threadIdx.y;
   for (int s = 0; s < batch_size; ++s) {
-    for (int CO = 0; CO < out_channel; ++CO) {
+    for (int k = 0; k < kernel; ++k) {
       if (i < size && j < size) {
-
+          uint8_t xx = 0;
           uint8_t conv = 0;
           // Conv2d for a single pixel, single output channel.
-          for (int CI = 0; CI < in_channel; ++CI) {
+          for (int l = 0; l < kernel; ++l) {
             int x = i - kernel / 2, y = j - kernel / 2;
-            for (int k = 0; k < kernel; ++k) {
-              for (int l = 0; l < kernel; ++l) {
+            for (int CI = 0; CI < in_channel; ++CI) {
+              for (int CO = 0; CO < out_channel; ++CO) {
                 if (!(x < 0 || x >= size || y < 0 || y >= size)) {
                   conv += a(s, x, y, CI) * w(k, l, CI, CO);
+                  xx = Co;
                 }
                 y++;
               }
@@ -188,7 +189,7 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
             }
           }
         // Write back to b.
-          b(s, i, j, CO) = conv;
+          b(s, i, j, xx) = conv;
       }
     }
   }
