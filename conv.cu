@@ -160,6 +160,18 @@ void Check(const uint8_t *const a, const uint8_t *const w, uint8_t *const b) {
 
 const int block_size = 16;
 /// \brief Do Conv2d with NHWC Input with HWIO Kernel, and NHWC output 
+__gloabal__ void conv2d1(const uint8_t *__restrict__ a, 
+                         const uint8_t *__restrict__ w, 
+                         uint8_t *__restrict__ b,
+			 uint8_t CO,
+			 uint8_t s) 
+{
+	for (int s = 0; s < batch_size; ++s) {
+      for (int CO = 0; CO < out_channel; ++CO) {
+  conv2d_cuda_kernel<<<grid, block>>>(a_kernel, w_kernel, b_kernel,CO,s);
+	      }
+}
+
 __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a, 
                                    const uint8_t *__restrict__ w, 
                                    uint8_t *__restrict__ b,
@@ -213,10 +225,7 @@ void conv_cuda(const uint8_t *const a, const uint8_t *const w, uint8_t *const b,
   dim3 block(block_size, block_size);
   // @note: you can also use CUDA API to launch a cuda kernel function,
   // __host__ cudaError_t cudaLaunchKernel;
-	for (int s = 0; s < batch_size; ++s) {
-      for (int CO = 0; CO < out_channel; ++CO) {
-  conv2d_cuda_kernel<<<grid, block>>>(a_kernel, w_kernel, b_kernel,CO,s);
-	      }
+	conv2d1<<<grid, block>>>(a_kernel, w_kernel, b_kernel,CO,s);
 }
   cudaError_t kernel_err = cudaGetLastError();
   if (kernel_err != cudaSuccess) {
