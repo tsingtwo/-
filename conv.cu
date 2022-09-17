@@ -25,7 +25,7 @@ const int out_channel = 128;
     if (!(e == cudaSuccess || e == cudaErrorCudartUnloading))   \
     {                                                           \
         fprintf(stderr, "CUDA: %s\n", cudaGetErrorString(e));   \
-	      abort();                                                \
+              abort();                                                \
     }                                                           \
   }
 
@@ -43,7 +43,7 @@ void Generate(uint8_t *const a, uint8_t *const w) {
           const int channel_lower = s * size * size * in_channel
                                   + i * size * in_channel
                                   + j * in_channel;
-          const int channel_upper = channel_lower + in_channel; 
+          const int channel_upper = channel_lower + in_channel;
           // Channel dimension.
           for (int c = channel_lower; c < channel_upper; ++c)
             a[c] = distribution(generator);
@@ -52,24 +52,24 @@ void Generate(uint8_t *const a, uint8_t *const w) {
 #pragma omp parallel for
   for (int i = 0; i < kernel; ++i) {
     InitRandom();
-    for (int j = 0; j < kernel; ++j) 
+    for (int j = 0; j < kernel; ++j)
       for (int CI = 0; CI < in_channel; ++CI) {
         const int channel_lower = i * kernel * in_channel * out_channel
                                 + j * in_channel * out_channel
                                 + CI * out_channel;
         const int channel_upper = channel_lower + out_channel;
-        for (int CO = channel_lower; CO < channel_upper; ++CO) 
+        for (int CO = channel_lower; CO < channel_upper; ++CO)
           w[CO] = distribution(generator);
       }
   }
 }
 
-void conv2d_cpu_kernel(const uint8_t *__restrict__ a, 
-                       const uint8_t *__restrict__ w, 
+void conv2d_cpu_kernel(const uint8_t *__restrict__ a,
+                       const uint8_t *__restrict__ w,
                        uint8_t *__restrict__ b) {
 #pragma omp parallel for
   for (int s = 0; s < batch_size; ++s) {
-    size_t output_bytes = ((out_channel * sizeof(uint8_t)) + (size_t)alignment - 1) & ~((size_t)alignment -1); 
+    size_t output_bytes = ((out_channel * sizeof(uint8_t)) + (size_t)alignment - 1) & ~((size_t)alignment -1);
     uint8_t *packedB = static_cast<uint8_t *>(malloc(output_bytes));
 
     size_t input_bytes = ((kernel * kernel * in_channel * sizeof(uint8_t)) + (size_t)alignment - 1) & ~((size_t)alignment - 1);
@@ -104,9 +104,9 @@ void conv2d_cpu_kernel(const uint8_t *__restrict__ a,
         }
 
         // Start from B[s, i, j, 0]
-        int output_index = s * size * size * out_channel 
-                         + i * size * out_channel 
-                         + j * out_channel;                 
+        int output_index = s * size * size * out_channel
+                         + i * size * out_channel
+                         + j * out_channel;
         memset(packedB, 0, output_bytes);
 
         // Start from W[0, 0, 0, 0]
@@ -159,44 +159,47 @@ void Check(const uint8_t *const a, const uint8_t *const w, uint8_t *const b) {
 }
 
 const int block_size = 16;
-/// \brief Do Conv2d with NHWC Input with HWIO Kernel, and NHWC output 
+/// \brief Do Conv2d with NHWC Input with HWIO Kernel, and NHWC output
 
 
-__global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a, 
-                                   const uint8_t *__restrict__ w, 
+__global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
+                                   const uint8_t *__restrict__ w,
                                    uint8_t *__restrict__ b,
-				   uint8_t CO,
-				   uint8_t s) 
+                                   uint8_t CO,
+                                   uint8_t s)
 {
   const int i = blockIdx.x * block_size + threadIdx.x;
   const int j = blockIdx.y * block_size + threadIdx.y;
-  if (i < size && j < size) {
-    
-        uint8_t conv = 0;
-        // Conv2d for a single pixel, single output channel.
-        for (int CI = 0; CI < in_channel; ++CI) {
-          int x = i - kernel / 2, y = j - kernel / 2;
-          for (int k = 0; k < kernel; ++k) {
-            for (int l = 0; l < kernel; ++l) {
-              if (!(x < 0 || x >= size || y < 0 || y >= size)) {
-                conv += a(s, x, y, CI) * w(k, l, CI, CO);
+  for (int s = 0; s < batch_size; ++s) {
+    for (int CO = 0; CO < out_channel; ++CO) {
+    if (i < size && j < size) {
+
+          uint8_t conv = 0;
+          // Conv2d for a single pixel, single output channel.
+          for (int CI = 0; CI < in_channel; ++CI) {
+            int x = i - kernel / 2, y = j - kernel / 2;
+            for (int k = 0; k < kernel; ++k) {
+              for (int l = 0; l < kernel; ++l) {
+                if (!(x < 0 || x >= size || y < 0 || y >= size)) {
+                  conv += a(s, x, y, CI) * w(k, l, CI, CO);
+                }
+                y++;
               }
-              y++;
+              x++;
+              y -= kernel;
             }
-            x++;
-            y -= kernel;
           }
-        }
         // Write back to b.
-        b(s, i, j, CO) = conv;
-    
+          b(s, i, j, CO) = conv;
+    }
+    }
   }
 }
 
 // naive and shit
 // only for testing correctness and precision
 void conv_cuda(const uint8_t *const a, const uint8_t *const w, uint8_t *const b,
-               cudaEvent_t *start_e, cudaEvent_t *stop_e) 
+               cudaEvent_t *start_e, cudaEvent_t *stop_e)
 {
   uint8_t *a_kernel, *w_kernel, *b_kernel;
   CUDA_CALL(cudaMalloc(&a_kernel, batch_size * size * size * in_channel * sizeof(uint8_t)));
@@ -215,18 +218,15 @@ void conv_cuda(const uint8_t *const a, const uint8_t *const w, uint8_t *const b,
   dim3 block(block_size, block_size);
   // @note: you can also use CUDA API to launch a cuda kernel function,
   // __host__ cudaError_t cudaLaunchKernel;
-	for (int s = 0; s < batch_size; ++s) {
-      for (int CO = 0; CO < out_channel; ++CO) {
-  conv2d_cuda_kernel<<<grid, block>>>(a, w, b,CO,s);
-	      }
-}
-}
+  
+  conv2d_cuda_kernel<<<grid, block>>>(a_kernel, w_kernel, b_kernel,CO,s);
+  CUDA_CALL(cudaDeviceSynchronize());
+
   cudaError_t kernel_err = cudaGetLastError();
   if (kernel_err != cudaSuccess) {
-  	printf("CUDA Kernel: %s", cudaGetErrorString(kernel_err));
-	abort();
+        printf("CUDA Kernel: %s", cudaGetErrorString(kernel_err));
+        abort();
   }
-  cudaDeviceSynchronize();
   // Stop Timer
   cudaEventRecord(*stop_e);
   cudaEventSynchronize(*stop_e);
@@ -267,4 +267,3 @@ int main() {
   delete[] b;
   return 0;
 }
-
