@@ -164,8 +164,6 @@ __global__ void conv2d_cuda_kernel(const uint8_t *__restrict__ a,
                                    const uint8_t *__restrict__ w, 
                                    uint8_t *__restrict__ b) 
 {
-  __shared__ float TiledA[batch_size][size][size][in_channel];
-  __shared__ float TiledB[kernel][kernel][in_channel][out_channel];
   int bx = blockIdx.x, by = blockIdx.y, tx = threadIdx.x, ty = threadIdx.y;
   const int i = bx * block_size + tx;
   const int j = by * block_size + ty;
