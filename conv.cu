@@ -217,7 +217,7 @@ void conv_cuda(const uint8_t *const a, const uint8_t *const w, uint8_t *const b,
   // __host__ cudaError_t cudaLaunchKernel;
 	for (int s = 0; s < batch_size; ++s) {
       for (int CO = 0; CO < out_channel; ++CO) {
-  conv2d_cuda_kernel<<<grid, block>>>(a_kernel, w_kernel, b_kernel,CO,s);
+  conv2d_cuda_kernel<<<grid, block>>>(a, w, b,CO,s);
 	      }
 }
 }
